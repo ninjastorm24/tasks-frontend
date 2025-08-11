@@ -25,7 +25,7 @@ const FormSheet = () => {
             </Button>
           </div>
         </SheetTrigger>
-        <SheetContent>
+        <SheetContent className="overflow-y-auto">
           <SheetHeader>
             <SheetTitle>
               <span className="text-2xl text-[#10715A]">Book Court,</span>
