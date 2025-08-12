@@ -77,6 +77,7 @@ export function NavProjects({
             </DropdownMenu>
           </SidebarMenuItem>
         ))}
+        {/* hello */}
         <SidebarMenuItem>
           <SidebarMenuButton className="text-sidebar-foreground/70">
             <MoreHorizontal className="text-sidebar-foreground/70" />

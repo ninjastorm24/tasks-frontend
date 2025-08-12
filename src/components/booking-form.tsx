@@ -31,6 +31,7 @@ import {
 import { Checkbox } from "./ui/checkbox";
 import { Badge } from "./ui/badge";
 import { ChevronDown, Minus, Plus } from "lucide-react";
+import { SheetClose, SheetFooter } from "./ui/sheet";
 
 const COURTS = [
   { id: "c1", label: "Court 1" },
@@ -48,6 +49,11 @@ const currencyOptions = [
   { label: "€", value: "EUR" },
 ];
 
+const discountOptions = [
+  { value: "fixed", label: "Fixed" },
+  { value: "percent", label: "%" },
+];
+
 const formSchema = z.object({
   createdBy: z.string().email().min(1, "Email is required"),
   startTime: z.string().min(1, "Start time is required"),
@@ -56,12 +62,14 @@ const formSchema = z.object({
   recurrentActivity: z.boolean().optional(),
   multiCourts: z.array(z.string()).optional(),
   bookingCheckin: z.boolean().optional(),
-  cancelTime: z.string().optional(),
+  cancelTime: z.number().min(0).max(24, "Max 24 hours allowed"),
   priceCurrency: z.string().min(1, "Currency is required"),
   priceValue: z.number().min(0, "Price must be a positive number"),
   doorCode: z.string().optional(),
-  amount: z.number().min(0, "Amount must be a positive number").optional(),
   type: z.string().min(1, "Type is required"),
+  amount: z.number().min(0, "Discount must be a positive number"),
+  discountType: z.string().min(1, "Discount type is required"),
+  discountValue: z.number().min(0, "Discount must be a positive number"),
 });
 
 const MultiSelect = ({
@@ -145,10 +153,12 @@ const BookingForm = () => {
       multiCourts: [],
       recurrentActivity: false,
       bookingCheckin: false,
-      cancelTime: "0",
+      cancelTime: 0,
       doorCode: "",
       amount: 0,
       type: "USD", // default to Dollar
+      discountType: "percent", // default to fixed discount
+      discountValue: 0,
     },
   });
   // define submit handler
@@ -184,7 +194,7 @@ const BookingForm = () => {
               )}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <FormField
                 control={form.control}
@@ -325,7 +335,6 @@ const BookingForm = () => {
             />
           </div>
 
-          {/* ----- MULTISELECT: inserted after last div ----- */}
           <div>
             <FormField
               control={form.control}
@@ -372,7 +381,7 @@ const BookingForm = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <FormField
                 control={form.control}
@@ -394,7 +403,7 @@ const BookingForm = () => {
                       </Button>
                       <span className="w-12 text-center">{field.value}</span>
                       <Button
-                        className="rounded-full  h-6 w-6"
+                        className="rounded-full h-6 w-6"
                         type="button"
                         size="icon"
                         variant="outline"
@@ -432,7 +441,7 @@ const BookingForm = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid   grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <FormField
                 control={form.control}
@@ -474,12 +483,18 @@ const BookingForm = () => {
 
                         {/* Right Input */}
                         <Input
-                          {...field}
                           type="number"
                           placeholder="Enter amount"
                           className="rounded-none rounded-r-full border-l-0 flex-grow"
                           min={0}
                           step="any"
+                          value={field.value ?? ""}
+                          onChange={(e) =>
+                            field.onChange(Number(e.target.value))
+                          }
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </div>
                     </FormControl>
@@ -491,32 +506,34 @@ const BookingForm = () => {
             <div>
               <FormField
                 control={form.control}
-                name="amount"
+                name="discountValue"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price or Discount</FormLabel>
+                    <FormLabel>Discount</FormLabel>
                     <FormControl>
                       <div className="flex items-center border rounded-full overflow-hidden">
                         {/* Left Select */}
                         <Controller
-                          name="type"
+                          name="discountType"
                           control={form.control}
                           render={({ field: selectField }) => (
                             <Select
                               onValueChange={selectField.onChange}
                               value={selectField.value}
                             >
-                              <SelectTrigger className="w-28 rounded-none rounded-l-full border-r-0">
+                              <SelectTrigger className="w-20 rounded-none rounded-l-full border-r-0">
                                 <SelectValue placeholder="Select" />
                               </SelectTrigger>
                               <SelectContent
                                 position="popper"
-                                className="w-40 bg-white border-2 rounded-md border-gray-200 "
+                                className="w-28 bg-white border-2 rounded-md border-gray-200"
                               >
-                                {/* Combine currencies and discount types */}
-                                {currencyOptions.map((c) => (
-                                  <SelectItem key={c.value} value={c.value}>
-                                    {c.label}
+                                {discountOptions.map((option) => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -529,12 +546,18 @@ const BookingForm = () => {
 
                         {/* Right Input */}
                         <Input
-                          {...field}
                           type="number"
                           placeholder="Enter amount"
                           className="rounded-none rounded-r-full border-l-0 flex-grow"
                           min={0}
                           step="any"
+                          value={field.value ?? ""}
+                          onChange={(e) =>
+                            field.onChange(Number(e.target.value))
+                          }
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </div>
                     </FormControl>
@@ -546,7 +569,25 @@ const BookingForm = () => {
           </div>
         </div>
 
-        <Button type="submit">Submit</Button>
+        {/* sheet footer */}
+        <SheetFooter>
+          <div className="flex items-center justify-between gap-2">
+            <SheetClose asChild>
+              <Button
+                variant="outline"
+                className="bg-[#ccc] hover:bg-[#bbb] rounded-full text-black"
+              >
+                Cancel
+              </Button>
+            </SheetClose>
+            <Button
+              type="submit"
+              className="rounded-full bg-[#10715A] hover:bg-[#10715A]/90 text-white"
+            >
+              Book Court
+            </Button>
+          </div>
+        </SheetFooter>
       </form>
     </Form>
   );
